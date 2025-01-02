@@ -24,6 +24,7 @@ import javax.servlet.http.HttpServletRequest;
 @Component
 public class AuthInterceptor {
 
+    // 根据属性名称注入Bean
     @Resource
     private UserService userService;
 
