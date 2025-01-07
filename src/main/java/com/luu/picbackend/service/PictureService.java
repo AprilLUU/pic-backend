@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.luu.picbackend.model.dto.picture.PictureQueryRequest;
+import com.luu.picbackend.model.dto.picture.PictureReviewRequest;
+import com.luu.picbackend.model.dto.picture.PictureUploadByBatchRequest;
 import com.luu.picbackend.model.dto.picture.PictureUploadRequest;
 import com.luu.picbackend.model.entity.Picture;
 import com.luu.picbackend.model.entity.User;
@@ -24,12 +26,12 @@ public interface PictureService extends IService<Picture> {
     /**
      * 上传图片
      *
-     * @param multipartFile          文件输入源
+     * @param inputSource         文件输入源
      * @param pictureUploadRequest
      * @param loginUser
      * @return
      */
-    PictureVO uploadPicture(MultipartFile multipartFile,
+    PictureVO uploadPicture(Object inputSource,
                             PictureUploadRequest pictureUploadRequest,
                             User loginUser);
 
@@ -65,7 +67,7 @@ public interface PictureService extends IService<Picture> {
      * @param pictureReviewRequest
      * @param loginUser
      */
-//    void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser);
+    void doPictureReview(PictureReviewRequest pictureReviewRequest, User loginUser);
 
     /**
      * 填充审核参数
@@ -73,7 +75,7 @@ public interface PictureService extends IService<Picture> {
      * @param picture
      * @param loginUser
      */
-//    void fillReviewParams(Picture picture, User loginUser);
+    void fillReviewParams(Picture picture, User loginUser);
 
     /**
      * 批量抓取和创建图片
@@ -82,8 +84,8 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser
      * @return 成功创建的图片数
      */
-//    Integer uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest,
-//                                 User loginUser);
+     int uploadPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest,
+                                 User loginUser);
 
     /**
      * 清理图片文件
