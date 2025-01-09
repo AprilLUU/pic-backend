@@ -3,10 +3,7 @@ package com.luu.picbackend.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.luu.picbackend.model.dto.picture.PictureQueryRequest;
-import com.luu.picbackend.model.dto.picture.PictureReviewRequest;
-import com.luu.picbackend.model.dto.picture.PictureUploadByBatchRequest;
-import com.luu.picbackend.model.dto.picture.PictureUploadRequest;
+import com.luu.picbackend.model.dto.picture.*;
 import com.luu.picbackend.model.entity.Picture;
 import com.luu.picbackend.model.entity.User;
 import com.luu.picbackend.model.vo.PictureVO;
@@ -92,7 +89,7 @@ public interface PictureService extends IService<Picture> {
      *
      * @param oldPicture
      */
-//    void clearPictureFile(Picture oldPicture);
+    void clearPictureFile(Picture oldPicture);
 
     /**
      * 删除图片
@@ -100,7 +97,7 @@ public interface PictureService extends IService<Picture> {
      * @param pictureId
      * @param loginUser
      */
-//    void deletePicture(long pictureId, User loginUser);
+    void deletePicture(long pictureId, User loginUser);
 
     /**
      * 编辑图片
@@ -108,7 +105,7 @@ public interface PictureService extends IService<Picture> {
      * @param pictureEditRequest
      * @param loginUser
      */
-//    void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
+    void editPicture(PictureEditRequest pictureEditRequest, User loginUser);
 
     /**
      * 校验空间图片的权限
@@ -116,7 +113,7 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser
      * @param picture
      */
-//    void checkPictureAuth(User loginUser, Picture picture);
+    void checkPictureAuth(User loginUser, Picture picture);
 
     /**
      * 根据颜色搜索图片

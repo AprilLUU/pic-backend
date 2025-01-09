@@ -2,6 +2,10 @@ server:
   port: 8123
   servlet:
     context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
 spring:
   application:
     name: pic-backend
@@ -11,10 +15,22 @@ spring:
     url: jdbc:mysql://localhost:3306/pic
     username: root
     password: 123456
+  # Redis 配置
+  redis:
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    timeout: 5000
   # 文件上传最大体积
   servlet:
     multipart:
       max-file-size: 10MB
+  session:
+    store-type: redis
+    # session 30 天过期
+    timeout: 2592000
+#  profiles:
+#    active: local
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false
