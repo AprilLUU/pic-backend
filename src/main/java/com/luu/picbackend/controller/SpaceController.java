@@ -193,16 +193,16 @@ public class SpaceController {
      *
      * @return
      */
-//    @GetMapping("/list/level")
-//    public BaseResponse<List<SpaceLevel>> listSpaceLevel() {
-//        List<SpaceLevel> spaceLevelList = Arrays.stream(SpaceLevelEnum.values())
-//                .map(spaceLevelEnum -> new SpaceLevel(
-//                        spaceLevelEnum.getValue(),
-//                        spaceLevelEnum.getText(),
-//                        spaceLevelEnum.getMaxCount(),
-//                        spaceLevelEnum.getMaxSize()
-//                ))
-//                .collect(Collectors.toList());
-//        return ResultUtils.success(spaceLevelList);
-//    }
+    @GetMapping("/list/level")
+    public BaseResponse<List<SpaceLevel>> listSpaceLevel() {
+        List<SpaceLevel> spaceLevelList = Arrays.stream(SpaceLevelEnum.values())
+                .map(spaceLevelEnum -> new SpaceLevel(
+                        spaceLevelEnum.getValue(),
+                        spaceLevelEnum.getText(),
+                        spaceLevelEnum.getMaxCount(),
+                        spaceLevelEnum.getMaxSize()
+                ))
+                .collect(Collectors.toList());
+        return ResultUtils.success(spaceLevelList);
+    }
 }

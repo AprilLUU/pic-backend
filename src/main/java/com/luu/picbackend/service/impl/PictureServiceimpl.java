@@ -34,6 +34,7 @@ import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -67,6 +68,9 @@ public class PictureServiceimpl extends ServiceImpl<PictureMapper, Picture> impl
     @Resource
     private SpaceService spaceService;
 
+    @Resource
+    private TransactionTemplate transactionTemplate;
+
     @Override
     public void validPicture(Picture picture) {
         ThrowUtils.throwIf(picture == null, ErrorCode.PARAMS_ERROR);
@@ -99,12 +103,12 @@ public class PictureServiceimpl extends ServiceImpl<PictureMapper, Picture> impl
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
             }
             // 校验额度
-//            if (space.getTotalCount() >= space.getMaxCount()) {
-//                throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间条数不足");
-//            }
-//            if (space.getTotalSize() >= space.getMaxSize()) {
-//                throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间大小不足");
-//            }
+            if (space.getTotalCount() >= space.getMaxCount()) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间条数不足");
+            }
+            if (space.getTotalSize() >= space.getMaxSize()) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间大小不足");
+            }
         }
         // 判断是新增还是更新
         Long pictureId = null;
@@ -173,8 +177,22 @@ public class PictureServiceimpl extends ServiceImpl<PictureMapper, Picture> impl
             picture.setId(pictureId);
             picture.setEditTime(new Date());
         }
-        boolean result = this.saveOrUpdate(picture);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败");
+        // 开启事务
+        Long finalSpaceId = spaceId;
+        transactionTemplate.execute(status -> {
+            boolean result = this.saveOrUpdate(picture);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败，数据库操作失败");
+            // 不是上传到公共空间，更新额度
+            if (finalSpaceId != null) {
+                boolean update = spaceService.lambdaUpdate()
+                        .eq(Space::getId, finalSpaceId)
+                        .setSql("totalSize = totalSize + " + picture.getPicSize())
+                        .setSql("totalCount = totalCount + 1")
+                        .update();
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+            }
+            return picture;
+        });
 
         return PictureVO.objToVo(picture);
     }
@@ -456,9 +474,25 @@ public class PictureServiceimpl extends ServiceImpl<PictureMapper, Picture> impl
         checkPictureAuth(loginUser, oldPicture);
         // 补充审核参数
         this.fillReviewParams(picture, loginUser);
-        // 操作数据库
-        boolean result = this.updateById(picture);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 开启事务
+        transactionTemplate.execute(status -> {
+            // 操作数据库
+            boolean result = this.removeById(id);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+            // 释放额度
+            Long spaceId = oldPicture.getSpaceId();
+            if (spaceId != null) {
+                boolean update = spaceService.lambdaUpdate()
+                        .eq(Space::getId, spaceId)
+                        .setSql("totalSize = totalSize - " + oldPicture.getPicSize())
+                        .setSql("totalCount = totalCount - 1")
+                        .update();
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败");
+            }
+            return true;
+        });
+        // 异步清理文件
+        this.clearPictureFile(oldPicture);
     }
 
     @Override
