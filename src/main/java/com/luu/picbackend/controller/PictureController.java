@@ -1,8 +1,12 @@
 package com.luu.picbackend.controller;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.luu.picbackend.annotation.AuthCheck;
+import com.luu.picbackend.api.imagesearch.ImageSearchApiFacade;
+import com.luu.picbackend.api.imagesearch.model.ImageSearchResult;
 import com.luu.picbackend.common.BaseResponse;
 import com.luu.picbackend.common.DeleteRequest;
 import com.luu.picbackend.common.ResultUtils;
@@ -30,8 +34,6 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/picture")
@@ -290,6 +292,35 @@ public class PictureController {
         User loginUser = userService.getLoginUser(request);
         pictureService.doPictureReview(pictureReviewRequest, loginUser);
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 以图搜图
+     */
+    @PostMapping("/search/picture")
+    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureRequest searchPictureByPictureRequest) {
+        ThrowUtils.throwIf(searchPictureByPictureRequest == null, ErrorCode.PARAMS_ERROR);
+        Long pictureId = searchPictureByPictureRequest.getPictureId();
+        ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
+        Picture oldPicture = pictureService.getById(pictureId);
+        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        String originUrl = oldPicture.getUrl();
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        // 替换.webp为原始图片后缀，解决webp搜索不到结果的问题
+        // 通过搜索引擎抓取的图片没有后缀 替换webp也可以正常搜索
+        String searchUrl = StrUtil.replace(originUrl, ".webp", ".") + FileUtil.extName(thumbnailUrl);
+        List<ImageSearchResult> resultList = ImageSearchApiFacade.searchImage(searchUrl);
+        return ResultUtils.success(resultList);
+    }
+
+    @PostMapping("/search/color")
+    public BaseResponse<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorRequest searchPictureByColorRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(searchPictureByColorRequest == null, ErrorCode.PARAMS_ERROR);
+        String picColor = searchPictureByColorRequest.getPicColor();
+        Long spaceId = searchPictureByColorRequest.getSpaceId();
+        User loginUser = userService.getLoginUser(request);
+        List<PictureVO> result = pictureService.searchPictureByColor(spaceId, picColor, loginUser);
+        return ResultUtils.success(result);
     }
 
 }

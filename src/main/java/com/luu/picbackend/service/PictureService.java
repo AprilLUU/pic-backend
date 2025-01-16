@@ -10,6 +10,7 @@ import com.luu.picbackend.model.vo.PictureVO;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 public interface PictureService extends IService<Picture> {
 
@@ -123,7 +124,7 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser
      * @return
      */
-//    List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
+    List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
 
     /**
      * 批量编辑图片

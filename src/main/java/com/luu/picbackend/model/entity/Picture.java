@@ -77,7 +77,7 @@ public class Picture implements Serializable {
     /**
      * 图片主色调
      */
-//    private String picColor;
+    private String picColor;
 
     /**
      * 创建用户 id
