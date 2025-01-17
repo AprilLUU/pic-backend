@@ -132,5 +132,5 @@ public interface PictureService extends IService<Picture> {
      * @param pictureEditByBatchRequest
      * @param loginUser
      */
-//    void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
+    void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
 }
