@@ -12,12 +12,16 @@ import com.luu.picbackend.exception.ThrowUtils;
 import com.luu.picbackend.model.dto.space.SpaceAddRequest;
 import com.luu.picbackend.model.dto.space.SpaceQueryRequest;
 import com.luu.picbackend.model.entity.Space;
+import com.luu.picbackend.model.entity.SpaceUser;
 import com.luu.picbackend.model.entity.User;
 import com.luu.picbackend.model.enums.SpaceLevelEnum;
+import com.luu.picbackend.model.enums.SpaceRoleEnum;
+import com.luu.picbackend.model.enums.SpaceTypeEnum;
 import com.luu.picbackend.model.vo.SpaceVO;
 import com.luu.picbackend.model.vo.UserVO;
 import com.luu.picbackend.service.SpaceService;
 import com.luu.picbackend.mapper.SpaceMapper;
+import com.luu.picbackend.service.SpaceUserService;
 import com.luu.picbackend.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -39,8 +43,12 @@ import java.util.stream.Collectors;
 @Service
 public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     implements SpaceService{
+
     @Resource
     private UserService userService;
+
+    @Resource
+    private SpaceUserService spaceUserService;
 
     @Resource
     private TransactionTemplate transactionTemplate;
@@ -64,6 +72,9 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         if (space.getSpaceLevel() == null) {
             space.setSpaceLevel(SpaceLevelEnum.COMMON.getValue());
         }
+        if (spaceAddRequest.getSpaceType() == null) {
+            spaceAddRequest.setSpaceType(SpaceTypeEnum.PRIVATE.getValue());
+        }
         // 填充容量和大小
         this.fillSpaceBySpaceLevel(space);
         // 2. 校验参数
@@ -80,15 +91,26 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         synchronized (lock) {
             // 执行事务并在锁释放之前提交 避免事务未提交但锁已释放造成的数据不一致
             Long newSpaceId = transactionTemplate.execute(status -> {
-                // 判断是否已有空间
+                // 判断是否已有空间，私有和团队空间都只能创建一个，通过spaceType查询是否存在
                 boolean exists = this.lambdaQuery()
                         .eq(Space::getUserId, userId)
+                        .eq(Space::getSpaceType, spaceAddRequest.getSpaceType())
                         .exists();
                 // 如果已有空间，就不能再创建
                 ThrowUtils.throwIf(exists, ErrorCode.OPERATION_ERROR, "每个用户仅能有一个私有空间");
                 // 创建
                 boolean result = this.save(space);
                 ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "保存空间到数据库失败");
+                // 如果是团队空间，关联新增团队成员记录
+                if (SpaceTypeEnum.TEAM.getValue() == spaceAddRequest.getSpaceType()) {
+                    SpaceUser spaceUser = new SpaceUser();
+                    spaceUser.setSpaceId(space.getId());
+                    spaceUser.setUserId(userId);
+                    spaceUser.setSpaceRole(SpaceRoleEnum.ADMIN.getValue());
+                    result = spaceUserService.save(spaceUser);
+                    ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "创建团队成员记录失败");
+                }
+
                 // 返回新写入的数据 id
                 return space.getId();
             });
@@ -105,6 +127,8 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         String spaceName = space.getSpaceName();
         Integer spaceLevel = space.getSpaceLevel();
         SpaceLevelEnum spaceLevelEnum = SpaceLevelEnum.getEnumByValue(spaceLevel);
+        Integer spaceType = space.getSpaceType();
+        SpaceTypeEnum spaceTypeEnum = SpaceTypeEnum.getEnumByValue(spaceType);
         // 创建时校验
         if (add) {
             if (StrUtil.isBlank(spaceName)) {
@@ -112,6 +136,9 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
             }
             if (spaceLevel == null) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间级别不能为空");
+            }
+            if (spaceType == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间类型不能为空");
             }
         }
         // 修改数据时，空间名称进行校验
@@ -121,6 +148,10 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         // 修改数据时，空间级别进行校验
         if (spaceLevel != null && spaceLevelEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间级别不存在");
+        }
+        // 修改数据时，空间类型进行校验
+        if (spaceType != null && spaceTypeEnum == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间类型不存在");
         }
     }
 
@@ -181,11 +212,13 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         Integer spaceLevel = spaceQueryRequest.getSpaceLevel();
         String sortField = spaceQueryRequest.getSortField();
         String sortOrder = spaceQueryRequest.getSortOrder();
+        Integer spaceType = spaceQueryRequest.getSpaceType();
         // 拼接查询条件
         queryWrapper.eq(ObjUtil.isNotEmpty(id), "id", id);
         queryWrapper.eq(ObjUtil.isNotEmpty(userId), "userId", userId);
         queryWrapper.like(StrUtil.isNotBlank(spaceName), "spaceName", spaceName);
         queryWrapper.eq(ObjUtil.isNotEmpty(spaceLevel), "spaceLevel", spaceLevel);
+        queryWrapper.eq(ObjUtil.isNotEmpty(spaceType), "spaceType", spaceType);
         // 排序
         queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
         return queryWrapper;

@@ -98,6 +98,7 @@ public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space>
         // 构造查询条件
         QueryWrapper<Picture> queryWrapper = new QueryWrapper<>();
         fillAnalyzeQueryWrapper(spaceCategoryAnalyzeRequest, queryWrapper);
+        queryWrapper.isNotNull("category");
 
         // 使用 MyBatis Plus 分组查询
         queryWrapper.select("category", "count(*) as count", "sum(picSize) as totalSize")
@@ -240,8 +241,6 @@ public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space>
     /**
      * 校验空间分析权限
      *
-     * @param spaceAnalyzeRequest
-     * @param loginUser
      */
     private void checkSpaceAnalyzeAuth(SpaceAnalyzeRequest spaceAnalyzeRequest, User loginUser) {
         boolean queryPublic = spaceAnalyzeRequest.isQueryPublic();
@@ -262,8 +261,6 @@ public class SpaceAnalyzeServiceImpl extends ServiceImpl<SpaceMapper, Space>
     /**
      * 根据请求对象封装查询条件
      *
-     * @param spaceAnalyzeRequest
-     * @param queryWrapper
      */
     private void fillAnalyzeQueryWrapper(SpaceAnalyzeRequest spaceAnalyzeRequest, QueryWrapper<Picture> queryWrapper) {
         // 全空间分析
