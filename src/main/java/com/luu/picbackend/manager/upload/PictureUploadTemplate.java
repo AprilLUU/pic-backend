@@ -19,6 +19,7 @@ import com.luu.picbackend.model.dto.file.UploadPictureResult;
 
 import javax.annotation.Resource;
 import java.io.File;
+import java.net.URL;
 import java.util.Date;
 import java.util.List;
 
