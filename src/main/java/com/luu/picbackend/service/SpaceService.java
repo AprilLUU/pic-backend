@@ -11,11 +11,6 @@ import com.luu.picbackend.model.vo.SpaceVO;
 
 import javax.servlet.http.HttpServletRequest;
 
-/**
-* @author ryli
-* @description 针对表【space(空间)】的数据库操作Service
-* @createDate 2025-01-09 14:40:49
-*/
 public interface SpaceService extends IService<Space> {
     /**
      * 创建空间

@@ -35,11 +35,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
-* @author ryli
-* @description 针对表【space(空间)】的数据库操作Service实现
-* @createDate 2025-01-09 14:40:49
-*/
 @Service
 public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     implements SpaceService{
@@ -53,13 +48,6 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     @Resource
     private TransactionTemplate transactionTemplate;
 
-    /**
-     * 创建空间
-     *
-     * @param spaceAddRequest
-     * @param loginUser
-     * @return
-     */
     @Override
     public long addSpace(SpaceAddRequest spaceAddRequest, User loginUser) {
         // 1. 填充参数默认值
@@ -118,7 +106,6 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
             return Optional.ofNullable(newSpaceId).orElse(-1L);
         }
     }
-
 
     @Override
     public void validSpace(Space space, boolean add) {

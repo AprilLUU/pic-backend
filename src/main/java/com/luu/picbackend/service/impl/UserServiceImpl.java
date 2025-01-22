@@ -7,6 +7,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
+import com.luu.picbackend.manager.auth.StpKit;
 import com.luu.picbackend.model.dto.user.UserQueryRequest;
 import com.luu.picbackend.model.vo.LoginUserVO;
 import com.luu.picbackend.model.vo.UserVO;
@@ -26,6 +27,8 @@ import com.luu.picbackend.model.enums.UserRoleEnum;
 import com.luu.picbackend.service.UserService;
 import com.luu.picbackend.mapper.UserMapper;
 import com.luu.picbackend.constant.UserConstant;
+
+import static com.luu.picbackend.constant.UserConstant.USER_LOGIN_STATE;
 
 @Service
 @Slf4j
@@ -117,7 +120,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或者密码错误");
         }
         // 4. 保存用户的登录态
-        request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE, user);
+        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+        // 5. 记录用户登录态到 Sa-token，便于空间鉴权时使用，注意保证该用户信息与 SpringSession 中的信息过期时间一致
+        StpKit.SPACE.login(user.getId());
+        StpKit.SPACE.getSession().set(USER_LOGIN_STATE, user);
         return this.getLoginUserVO(user);
     }
 
@@ -141,7 +147,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public User getLoginUser(HttpServletRequest request) {
         // 判断是否已经登录
-        Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User currentUser = (User) userObj;
         if (currentUser == null || currentUser.getId() == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
@@ -194,12 +200,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public boolean userLogout(HttpServletRequest request) {
         // 判断是否已经登录
-        Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         if (userObj == null) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "未登录");
         }
         // 移除登录态
-        request.getSession().removeAttribute(UserConstant.USER_LOGIN_STATE);
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
         return true;
     }
 

@@ -9,6 +9,7 @@ import com.luu.picbackend.constant.UserConstant;
 import com.luu.picbackend.exception.BusinessException;
 import com.luu.picbackend.exception.ErrorCode;
 import com.luu.picbackend.exception.ThrowUtils;
+import com.luu.picbackend.manager.auth.SpaceUserAuthManager;
 import com.luu.picbackend.model.dto.space.*;
 import com.luu.picbackend.model.entity.Space;
 import com.luu.picbackend.model.entity.User;
@@ -18,6 +19,7 @@ import com.luu.picbackend.service.SpaceService;
 import com.luu.picbackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -37,6 +39,9 @@ public class SpaceController {
 
     @Resource
     private SpaceService spaceService;
+
+    @Resource
+    private SpaceUserAuthManager spaceUserAuthManager;
 
     @PostMapping("/add")
     public BaseResponse<Long> addSpace(@RequestBody SpaceAddRequest spaceAddRequest, HttpServletRequest request) {
@@ -119,8 +124,11 @@ public class SpaceController {
         // 查询数据库
         Space space = spaceService.getById(id);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
-        // 获取封装类
-        return ResultUtils.success(spaceService.getSpaceVO(space, request));
+        SpaceVO spaceVO = spaceService.getSpaceVO(space, request);
+        User loginUser = userService.getLoginUser(request);
+        List<String> permissionList = spaceUserAuthManager.getPermissionList(space, loginUser);
+        spaceVO.setPermissionList(permissionList);
+        return ResultUtils.success(spaceVO);
     }
 
     /**

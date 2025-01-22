@@ -10,9 +10,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
-/**
- * @description 针对表【space_user(空间用户关联)】的数据库操作Service
- */
 public interface SpaceUserService extends IService<SpaceUser> {
 
     /**
