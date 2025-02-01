@@ -37,7 +37,8 @@ import static com.luu.picbackend.constant.UserConstant.USER_LOGIN_STATE;
 /**
  * 自定义权限加载接口实现类
  */
-@Component    // 保证此类被 SpringBoot 扫描，完成 Sa-Token 的自定义权限验证扩展
+@Component
+// 保证此类被 SpringBoot 扫描，完成 Sa-Token 的自定义权限验证扩展
 public class StpInterfaceImpl implements StpInterface {
 
     // 默认是 /api
@@ -77,6 +78,7 @@ public class StpInterfaceImpl implements StpInterface {
         List<String> ADMIN_PERMISSIONS = spaceUserAuthManager.getPermissionsByRole(SpaceRoleEnum.ADMIN.getValue());
         // 获取上下文对象
         SpaceUserAuthContext authContext = getAuthContextByRequest();
+        System.out.println("context:" + authContext);
         // 如果所有字段都为空，表示查询公共图库，可以通过
         if (isAllFieldsNull(authContext)) {
             return ADMIN_PERMISSIONS;

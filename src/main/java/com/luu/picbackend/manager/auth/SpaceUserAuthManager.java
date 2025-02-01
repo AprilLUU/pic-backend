@@ -6,6 +6,7 @@ import cn.hutool.json.JSONUtil;
 import com.luu.picbackend.manager.auth.model.SpaceUserAuthConfig;
 import com.luu.picbackend.manager.auth.model.SpaceUserPermissionConstant;
 import com.luu.picbackend.manager.auth.model.SpaceUserRole;
+import com.luu.picbackend.model.entity.Picture;
 import com.luu.picbackend.model.entity.Space;
 import com.luu.picbackend.model.entity.SpaceUser;
 import com.luu.picbackend.model.entity.User;

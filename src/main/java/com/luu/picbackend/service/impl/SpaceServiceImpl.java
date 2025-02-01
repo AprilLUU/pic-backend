@@ -84,12 +84,14 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
             // 执行事务并在锁释放之前提交 避免事务未提交但锁已释放造成的数据不一致
             Long newSpaceId = transactionTemplate.execute(status -> {
                 // 判断是否已有空间，私有和团队空间都只能创建一个，通过spaceType查询是否存在
+                Integer spaceType = spaceAddRequest.getSpaceType();
                 boolean exists = this.lambdaQuery()
                         .eq(Space::getUserId, userId)
-                        .eq(Space::getSpaceType, spaceAddRequest.getSpaceType())
+                        .eq(Space::getSpaceType, spaceType)
                         .exists();
                 // 如果已有空间，就不能再创建
-                ThrowUtils.throwIf(exists, ErrorCode.OPERATION_ERROR, "每个用户仅能有一个私有空间");
+                ThrowUtils.throwIf(exists && spaceType == SpaceTypeEnum.PRIVATE.getValue(), ErrorCode.OPERATION_ERROR, "每个用户仅能有一个私有空间");
+                ThrowUtils.throwIf(exists && spaceType == SpaceTypeEnum.TEAM.getValue(), ErrorCode.OPERATION_ERROR, "每个用户仅能有一个团队空间");
                 // 创建
                 boolean result = this.save(space);
                 ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "保存空间到数据库失败");
