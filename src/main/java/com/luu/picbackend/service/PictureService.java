@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.luu.picbackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
+import com.luu.picbackend.api.aliyunai.model.CreateText2ImageTaskResponse;
 import com.luu.picbackend.model.dto.picture.*;
 import com.luu.picbackend.model.entity.Picture;
 import com.luu.picbackend.model.entity.User;
@@ -141,4 +142,12 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser
      */
     CreateOutPaintingTaskResponse createPictureOutPaintingTask(CreatePictureOutPaintingTaskRequest createPictureOutPaintingTaskRequest, User loginUser);
+
+    /**
+     * 创建扩图任务
+     *
+     * @param createGeneratePictureTaskRequest
+     * @param loginUser
+     */
+    CreateText2ImageTaskResponse createText2ImageTask(CreateGeneratePictureTaskRequest createGeneratePictureTaskRequest, User loginUser);
 }

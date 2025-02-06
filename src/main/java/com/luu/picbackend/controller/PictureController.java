@@ -6,8 +6,7 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.luu.picbackend.annotation.AuthCheck;
 import com.luu.picbackend.api.aliyunai.AliYunAiApi;
-import com.luu.picbackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
-import com.luu.picbackend.api.aliyunai.model.GetOutPaintingTaskResponse;
+import com.luu.picbackend.api.aliyunai.model.*;
 import com.luu.picbackend.api.imagesearch.ImageSearchApiFacade;
 import com.luu.picbackend.api.imagesearch.model.ImageSearchResult;
 import com.luu.picbackend.common.BaseResponse;
@@ -390,6 +389,30 @@ public class PictureController {
     public BaseResponse<GetOutPaintingTaskResponse> getPictureOutPaintingTask(String taskId) {
         ThrowUtils.throwIf(StrUtil.isBlank(taskId), ErrorCode.PARAMS_ERROR);
         GetOutPaintingTaskResponse task = aliYunAiApi.getOutPaintingTask(taskId);
+        return ResultUtils.success(task);
+    }
+
+    /**
+     * 创建文生图任务
+     */
+    @PostMapping("/text_to_image/create_task")
+    public BaseResponse<CreateText2ImageTaskResponse> createText2ImageTask(@RequestBody CreateGeneratePictureTaskRequest createGeneratePictureTaskRequest,
+                                                                                   HttpServletRequest request) {
+        if (createGeneratePictureTaskRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        CreateText2ImageTaskResponse response = pictureService.createText2ImageTask(createGeneratePictureTaskRequest, loginUser);
+        return ResultUtils.success(response);
+    }
+
+    /**
+     * 查询文生图任务
+     */
+    @GetMapping("/text_to_image/get_task")
+    public BaseResponse<GetText2ImageTaskResponse> getText2ImageTask(String taskId) {
+        ThrowUtils.throwIf(StrUtil.isBlank(taskId), ErrorCode.PARAMS_ERROR);
+        GetText2ImageTaskResponse task = aliYunAiApi.getText2ImageTask(taskId);
         return ResultUtils.success(task);
     }
 }

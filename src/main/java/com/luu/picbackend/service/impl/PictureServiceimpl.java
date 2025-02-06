@@ -10,6 +10,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.luu.picbackend.api.aliyunai.AliYunAiApi;
 import com.luu.picbackend.api.aliyunai.model.CreateOutPaintingTaskRequest;
 import com.luu.picbackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
+import com.luu.picbackend.api.aliyunai.model.CreateText2ImageTaskRequest;
+import com.luu.picbackend.api.aliyunai.model.CreateText2ImageTaskResponse;
 import com.luu.picbackend.exception.BusinessException;
 import com.luu.picbackend.exception.ErrorCode;
 import com.luu.picbackend.exception.ThrowUtils;
@@ -649,5 +651,21 @@ public class PictureServiceimpl extends ServiceImpl<PictureMapper, Picture> impl
         createOutPaintingTaskRequest.setParameters(createPictureOutPaintingTaskRequest.getParameters());
         // 创建任务
         return aliYunAiApi.createOutPaintingTask(createOutPaintingTaskRequest);
+    }
+
+    @Override
+    public CreateText2ImageTaskResponse createText2ImageTask(CreateGeneratePictureTaskRequest createGeneratePictureTaskRequest, User loginUser) {
+        // 创建扩图任务
+        CreateText2ImageTaskRequest createText2ImageTaskRequest = new CreateText2ImageTaskRequest();
+        CreateText2ImageTaskRequest.Input input = new CreateText2ImageTaskRequest.Input();
+        CreateText2ImageTaskRequest.Parameters parameters = new CreateText2ImageTaskRequest.Parameters();
+        input.setPrompt(createGeneratePictureTaskRequest.getPrompt());
+        createText2ImageTaskRequest.setInput(input);
+        if (createGeneratePictureTaskRequest.getParameters() != null) {
+            BeanUtils.copyProperties(createGeneratePictureTaskRequest.getParameters(), parameters);
+        }
+        createText2ImageTaskRequest.setParameters(parameters);
+        // 创建任务
+        return aliYunAiApi.createText2ImageTask(createText2ImageTaskRequest);
     }
 }
