@@ -81,8 +81,14 @@ public class UrlPictureUpload extends PictureUploadTemplate {
         String fileUrl = (String) inputSource;
         // return FileUtil.mainName(fileUrl);
         // 获取文件名
+        String result;
         // 以URL上传时，会出现不需要的查询字符串导致获取对象存储图片失败，此时需要去除查询字符串，以URL的文件名作为后缀
-        return fileUrl.substring(fileUrl.lastIndexOf("/") + 1, fileUrl.lastIndexOf("?"));
+        if (fileUrl.contains("?")) {
+            result = fileUrl.substring(fileUrl.lastIndexOf("/") + 1, fileUrl.lastIndexOf("?"));
+        } else {
+            result = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+        }
+        return result;
     }
 
     @Override

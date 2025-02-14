@@ -160,7 +160,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.luu.picbackend.PicBackendApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>
