@@ -1,8 +1,11 @@
 package com.luu.picbackend.api.aliyunai;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.luu.picbackend.api.aliyunai.model.*;
 import com.luu.picbackend.exception.BusinessException;
@@ -10,6 +13,13 @@ import com.luu.picbackend.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -30,6 +40,9 @@ public class AliYunAiApi {
 
     // 查询任务状态
     public static final String GET_TEXT2IMAGE_TASK_URL = "https://dashscope.aliyuncs.com/api/v1/tasks/%s";
+
+    // 调用大模型进行情感分析
+    private static final String CHAT_COMPLETION_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
 
 
     /**
@@ -143,4 +156,81 @@ public class AliYunAiApi {
             return JSONUtil.toBean(httpResponse.body(), GetText2ImageTaskResponse.class);
         }
     }
+
+    /**
+     * 调用 DashScope 大模型（通用）
+     */
+    public String chatCompletionStream(SentimentAnalysisRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "AI 请求参数为空");
+        }
+
+        HttpRequest httpRequest = HttpRequest.post(CHAT_COMPLETION_URL)
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Content-Type", "application/json")
+                .body(JSONUtil.toJsonStr(request));
+
+        try (HttpResponse response = httpRequest.execute()) {
+
+            if (!response.isOk()) {
+                log.error("DashScope 请求失败：{}", response.body());
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "AI 调用失败");
+            }
+
+            // 读取流式响应
+            return parseStreamResponse(response);
+
+        } catch (Exception e) {
+            log.error("DashScope 流式调用异常", e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "AI 调用异常");
+        }
+    }
+
+
+    /**
+     * 解析大模型返回内容
+     */
+    private String parseStreamResponse(HttpResponse response) throws IOException {
+
+        StringBuilder result = new StringBuilder();
+
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(response.bodyStream(), StandardCharsets.UTF_8))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+
+                // SSE 以 data: 开头
+                if (!line.startsWith("data:")) {
+                    continue;
+                }
+
+                String jsonStr = line.substring(5).trim();
+
+                // 结束标志
+                if ("[DONE]".equals(jsonStr)) {
+                    break;
+                }
+
+                JSONObject json = JSONUtil.parseObj(jsonStr);
+                JSONArray choices = json.getJSONArray("choices");
+                if (CollUtil.isEmpty(choices)) {
+                    continue;
+                }
+
+                JSONObject delta = choices.getJSONObject(0).getJSONObject("delta");
+                if (delta == null) {
+                    continue;
+                }
+
+                String content = delta.getStr("content");
+                if (StrUtil.isNotBlank(content)) {
+                    result.append(content);
+                }
+            }
+        }
+
+        return result.toString().trim();
+    }
+
 }

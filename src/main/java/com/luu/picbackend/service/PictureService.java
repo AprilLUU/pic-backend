@@ -150,4 +150,12 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser
      */
     CreateText2ImageTaskResponse createText2ImageTask(CreateGeneratePictureTaskRequest createGeneratePictureTaskRequest, User loginUser);
+
+    /**
+     * 大模型情感分析
+     *
+     * @param analyzePictureEmotionRequest
+     * @param loginUser
+     */
+    AnalyzePictureEmotionResponse multiModalSentimentAnalysis(AnalyzePictureEmotionRequest analyzePictureEmotionRequest, User loginUser);
 }

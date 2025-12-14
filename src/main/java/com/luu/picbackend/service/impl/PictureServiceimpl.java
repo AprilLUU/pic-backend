@@ -8,10 +8,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.luu.picbackend.api.aliyunai.AliYunAiApi;
-import com.luu.picbackend.api.aliyunai.model.CreateOutPaintingTaskRequest;
-import com.luu.picbackend.api.aliyunai.model.CreateOutPaintingTaskResponse;
-import com.luu.picbackend.api.aliyunai.model.CreateText2ImageTaskRequest;
-import com.luu.picbackend.api.aliyunai.model.CreateText2ImageTaskResponse;
+import com.luu.picbackend.api.aliyunai.model.*;
+import com.luu.picbackend.common.ResultUtils;
 import com.luu.picbackend.exception.BusinessException;
 import com.luu.picbackend.exception.ErrorCode;
 import com.luu.picbackend.exception.ThrowUtils;
@@ -180,6 +178,8 @@ public class PictureServiceimpl extends ServiceImpl<PictureMapper, Picture> impl
         picture.setPicFormat(uploadPictureResult.getPicFormat());
         picture.setPicColor(ColorTransformUtils.getStandardColor(uploadPictureResult.getPicColor()));
         picture.setUserId(loginUser.getId());
+        String category = "未进行情感分析";
+        picture.setCategory(category);
         // 补充审核参数
         this.fillReviewParams(picture, loginUser);
         // 如果 pictureId 不为空，表示更新，否则是新增
@@ -668,4 +668,124 @@ public class PictureServiceimpl extends ServiceImpl<PictureMapper, Picture> impl
         // 创建任务
         return aliYunAiApi.createText2ImageTask(createText2ImageTaskRequest);
     }
+
+    @Override
+    public AnalyzePictureEmotionResponse multiModalSentimentAnalysis(
+            AnalyzePictureEmotionRequest analyzePictureEmotionRequest,
+            User loginUser) {
+
+        Long pictureId = analyzePictureEmotionRequest.getPictureId();
+        String userText = analyzePictureEmotionRequest.getText();
+
+        ThrowUtils.throwIf(pictureId == null || pictureId <= 0, ErrorCode.PARAMS_ERROR);
+
+        // 1. 查询图片信息
+        Picture picture = this.getById(pictureId);
+        if (picture == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+        }
+
+        // 2. 如果已有情感分类，直接返回
+        String category = picture.getCategory();
+        if (StrUtil.isNotBlank(category)
+                && (category.equals("积极")
+                || category.equals("中性")
+                || category.equals("消极"))) {
+
+            AnalyzePictureEmotionResponse response = new AnalyzePictureEmotionResponse();
+            response.setCategory(category);
+            response.setAiResult(category);
+            return response;
+        }
+
+        // 3. 构造 DashScope 情感分析请求
+        SentimentAnalysisRequest request = buildSentimentRequest(
+                picture.getUrl(),
+                userText
+        );
+
+        // 4️. 调用大模型（流式）
+        String aiResult = aliYunAiApi.chatCompletionStream(request);
+
+        // 5️. 解析并归一化结果
+        String finalCategory = normalizeCategory(aiResult);
+
+        if (StrUtil.isBlank(finalCategory)) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "AI 情感分析失败");
+        }
+
+        // 6️. 回填数据库
+        Picture updatePicture = new Picture();
+        updatePicture.setId(pictureId);
+        updatePicture.setCategory(finalCategory);
+        updatePicture.setIntroduction(userText);
+        boolean result = this.updateById(updatePicture);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+
+        // 7️. 返回结果
+        AnalyzePictureEmotionResponse response = new AnalyzePictureEmotionResponse();
+        response.setCategory(finalCategory);
+        response.setAiResult(aiResult);
+
+        return response;
+    }
+
+    private SentimentAnalysisRequest buildSentimentRequest(String imageUrl, String text) {
+
+        // image content
+        SentimentAnalysisRequest.DashScopeMessage.DashScopeContent.ImageUrl image =
+                new SentimentAnalysisRequest.DashScopeMessage.DashScopeContent.ImageUrl();
+        image.setUrl(imageUrl);
+
+        SentimentAnalysisRequest.DashScopeMessage.DashScopeContent imageContent =
+                new SentimentAnalysisRequest.DashScopeMessage.DashScopeContent();
+        imageContent.setType("image_url");
+        imageContent.setImage_url(image);
+
+        // text content（重点：拼接用户台词）
+        SentimentAnalysisRequest.DashScopeMessage.DashScopeContent textContent =
+                new SentimentAnalysisRequest.DashScopeMessage.DashScopeContent();
+        textContent.setType("text");
+        textContent.setText(
+                "请结合图片内容进行情感分析，这张图片的台词是："
+                        + text
+                        + "。只返回：积极 / 中性 / 消极 中的一个，不要输出其他内容"
+        );
+
+        List<SentimentAnalysisRequest.DashScopeMessage.DashScopeContent> contents =
+                new ArrayList<>();
+        contents.add(imageContent);
+        contents.add(textContent);
+
+        SentimentAnalysisRequest.DashScopeMessage message =
+                new SentimentAnalysisRequest.DashScopeMessage();
+        message.setContent(contents);
+
+        SentimentAnalysisRequest request = new SentimentAnalysisRequest();
+        request.setMessages(Collections.singletonList(message));
+
+        return request;
+    }
+
+    private String normalizeCategory(String aiResult) {
+
+        if (StrUtil.isBlank(aiResult)) {
+            return null;
+        }
+
+        String result = aiResult.trim();
+
+        if (result.contains("积极")) {
+            return "积极";
+        }
+        if (result.contains("中性")) {
+            return "中性";
+        }
+        if (result.contains("消极")) {
+            return "消极";
+        }
+
+        return null;
+    }
+
 }

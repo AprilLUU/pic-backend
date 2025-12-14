@@ -33,7 +33,6 @@ import com.luu.picbackend.service.SpaceService;
 import com.luu.picbackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -311,8 +310,8 @@ public class PictureController {
     @GetMapping("/tag_category")
     public BaseResponse<PictureTagCategoryVO> listPictureTagCategory() {
         PictureTagCategoryVO pictureTagCategory = new PictureTagCategoryVO();
-        List<String> tagList = Arrays.asList("热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意");
-        List<String> categoryList = Arrays.asList("模板", "电商", "表情包", "素材", "海报");
+        List<String> tagList = Arrays.asList("高兴", "悲伤", "愤怒", "恐惧", "厌恶", "惊讶", "期待", "信任", "羞愧", "平静");
+        List<String> categoryList = Arrays.asList("未进行情感分析", "积极", "中性", "消极");
         pictureTagCategory.setTagList(tagList);
         pictureTagCategory.setCategoryList(categoryList);
         return ResultUtils.success(pictureTagCategory);
@@ -415,4 +414,20 @@ public class PictureController {
         GetText2ImageTaskResponse task = aliYunAiApi.getText2ImageTask(taskId);
         return ResultUtils.success(task);
     }
+
+    /**
+     * AI 情感分析（图 + 文）
+     */
+    @PostMapping("/emotion/analyze")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_VIEW)
+    public BaseResponse<AnalyzePictureEmotionResponse> analyzePictureEmotion(
+            @RequestBody AnalyzePictureEmotionRequest request,
+            HttpServletRequest httpServletRequest) {
+        ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(httpServletRequest);
+        AnalyzePictureEmotionResponse response = pictureService.multiModalSentimentAnalysis(request, loginUser);
+
+        return ResultUtils.success(response);
+    }
+
 }
